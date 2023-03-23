@@ -5,12 +5,13 @@ class LoadingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Material App Bar'),
+        title: Text('Products'),
       ),
-      body: const Center(
-          child: CircularProgressIndicator(
-        color: Colors.indigo,
-      )),
+      body: Center(
+        child: CircularProgressIndicator(
+          color: Colors.indigo,
+        ),
+      ),
     );
   }
 }

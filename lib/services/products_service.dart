@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+//import 'package:image_picker/image_picker.dart';
 import 'package:productos_app/models/models.dart';
 import 'package:http/http.dart' as http;
 
@@ -10,6 +12,7 @@ class ProductsService extends ChangeNotifier {
   late Product selectedProduct;
   bool isLoading = true;
   bool isSaving = false;
+  File? newPictureFile;
 
   ProductsService() {
     loadProducts();
@@ -29,7 +32,7 @@ class ProductsService extends ChangeNotifier {
       products.add(tempProduct);
     });
 
-    //isLoading = false;
+    isLoading = false;
     notifyListeners();
 
     return products;
@@ -41,6 +44,7 @@ class ProductsService extends ChangeNotifier {
 
     if (product.id == null) {
       //necesario crear
+      await createProduct(product);
     } else {
       //actualizar
       await updateProduct(product);
@@ -59,5 +63,57 @@ class ProductsService extends ChangeNotifier {
     final index = products.indexWhere((element) => element.id == product.id);
     products[index] = product;
     return product.id!;
+  }
+
+  Future<String> createProduct(Product product) async {
+    final url = Uri.https(_baseUrl, 'products.json');
+    final resp = await http.post(url, body: product.toJson());
+    final decodedData = json.decode(resp.body);
+    //print(decodedData);
+    product.id = decodedData['name'];
+
+    products.add(product);
+
+    //print(decodedData);
+    /* final index = products.indexWhere((element) => element.id == product.id);
+    products[index] = product; */
+    return product.id!;
+  }
+
+  void updateSelectedPRoductImage(String path) {
+    selectedProduct.picture = path;
+    newPictureFile = File.fromUri(Uri(path: path));
+    notifyListeners();
+  }
+
+  Future<String?> uploadImage() async {
+    if (newPictureFile == null) return null;
+
+    isSaving = true;
+    notifyListeners();
+
+    final url = Uri.parse(
+        'https://api.cloudinary.com/v1_1/ceromiedo/image/upload?upload_preset=i0mzvdxo');
+
+    final imageUploadRequest = http.MultipartRequest('POST', url);
+
+    final file =
+        await http.MultipartFile.fromPath('file', newPictureFile!.path);
+
+    imageUploadRequest.files.add(file);
+
+    final streamResponse = await imageUploadRequest.send();
+
+    final resp = await http.Response.fromStream(streamResponse);
+
+    if (resp.statusCode != 200 && resp.statusCode != 201) {
+      print('algo salió mal');
+      print(resp.body);
+      return null;
+    }
+    newPictureFile = null;
+    final decodedData = json.decode(resp.body);
+    print(resp.body);
+    return decodedData['secure_url'];
   }
 }

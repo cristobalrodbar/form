@@ -5,6 +5,7 @@ import 'package:productos_app/services/services.dart';
 import 'package:productos_app/ui/input_decorations.dart';
 import 'package:provider/provider.dart';
 import '../widgets/widgets.dart';
+import 'package:image_picker/image_picker.dart';
 
 class Productscreen extends StatelessWidget {
   @override
@@ -53,8 +54,19 @@ class _ProductScreenBody extends StatelessWidget {
                     top: 60,
                     right: 20,
                     child: IconButton(
-                      onPressed: () {
-                        //TODO galería
+                      onPressed: () async {
+                        final picker = ImagePicker();
+                        final PickedFile? pickedFile = await picker.getImage(
+                            source: ImageSource.camera, imageQuality: 100);
+
+                        if (pickedFile == null) {
+                          print('nada');
+                          return;
+                        }
+
+                        print('Tenemos imagen ${pickedFile.path}');
+                        productService
+                            .updateSelectedPRoductImage(pickedFile.path);
                       },
                       icon: Icon(
                         Icons.camera_alt_outlined,
@@ -73,11 +85,22 @@ class _ProductScreenBody extends StatelessWidget {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          if (!productform.isValidForm()) return;
-          await productService.saveOrCreateProduct(productform.product);
-        },
-        child: Icon(Icons.save_outlined),
+        child: productService.isSaving
+            ? CircularProgressIndicator(
+                color: Colors.white,
+              )
+            : Icon(Icons.save_outlined),
+        onPressed: productService.isSaving
+            ? null
+            : () async {
+                if (!productform.isValidForm()) return;
+                final String? imageUrl = await productService.uploadImage();
+
+                if (imageUrl != null) productform.product.picture = imageUrl;
+
+                //print(imageUrl);
+                await productService.saveOrCreateProduct(productform.product);
+              },
       ),
     );
   }
