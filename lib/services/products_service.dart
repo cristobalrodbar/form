@@ -7,7 +7,9 @@ import 'package:http/http.dart' as http;
 class ProductsService extends ChangeNotifier {
   final String _baseUrl = 'utils-b9ba9-default-rtdb.firebaseio.com';
   final List<Product> products = [];
+  late Product selectedProduct;
   bool isLoading = true;
+  bool isSaving = false;
 
   ProductsService() {
     loadProducts();
@@ -31,5 +33,31 @@ class ProductsService extends ChangeNotifier {
     notifyListeners();
 
     return products;
+  }
+
+  Future saveOrCreateProduct(Product product) async {
+    isSaving = true;
+    notifyListeners();
+
+    if (product.id == null) {
+      //necesario crear
+    } else {
+      //actualizar
+      await updateProduct(product);
+    }
+
+    isSaving = false;
+    notifyListeners();
+  }
+
+  Future<String> updateProduct(Product product) async {
+    final url = Uri.https(_baseUrl, 'products${product.id}.json');
+    final resp = await http.put(url, body: product.toJson());
+    //final decodedData = resp.body;
+
+    //print(decodedData);
+    final index = products.indexWhere((element) => element.id == product.id);
+    products[index] = product;
+    return product.id!;
   }
 }
